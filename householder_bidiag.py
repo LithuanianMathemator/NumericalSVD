@@ -1,6 +1,6 @@
 import numpy as np
 
-def householder_bidiag(A, U, V_t, mode='real'):
+def householder_bidiag(A, U, V_t, mode='real', compute='USV'):
     '''
     function to determine a bidiagonal decomposition of A using
     Householder transformations
@@ -18,28 +18,32 @@ def householder_bidiag(A, U, V_t, mode='real'):
         v, b = determine_householder(B[j:,j],mode)
         B[j:,j:] = B[j:,j:] - \
             b*v.reshape(m_B-j,1)@(np.conjugate(v).T@B[j:,j:]).reshape(1,n_B-j)
-        U[:,j:] = U[:,j:] - \
-            b*(U[:,j:]@v).reshape(m_U,1)@np.conjugate(v).reshape(1,m_B-j)
+        if compute == 'US' or compute == 'USV':
+            U[:,j:] = U[:,j:] - \
+                b*(U[:,j:]@v).reshape(m_U,1)@np.conjugate(v).reshape(1,m_B-j)
         
         if mode == 'complex':
             
             theta = np.angle(B[j,j])
             B[j,j:] = np.exp(-1j*theta)*B[j,j:]
-            U[:,j] = np.exp(1j*theta)*U[:,j]
+            if compute == 'US' or compute == 'USV':
+                U[:,j] = np.exp(1j*theta)*U[:,j]
         
         if j <= n_B-2 or n_B > m_B:
 
             v, b = determine_householder(np.conjugate(B[j, j+1:]),mode)
             B[j:,j+1:] = B[j:,j+1:] - \
                 b*(B[j:,j+1:]@v).reshape(m_B-j,1)@np.conjugate(v).reshape(1,n_B-j-1)
-            V_t[j+1:,:] = V_t[j+1:,:] - \
-                b*v.reshape(n_B-j-1,1)@(np.conjugate(v).T@V_t[j+1:,:]).reshape(1,n_V)
+            if compute == 'UV' or compute == 'USV':
+                V_t[j+1:,:] = V_t[j+1:,:] - \
+                    b*v.reshape(n_B-j-1,1)@(np.conjugate(v).T@V_t[j+1:,:]).reshape(1,n_V)
             
             if mode == 'complex':
                 
                 theta = np.angle(B[j,j+1])
                 B[j:,j+1] = np.exp(-1j*theta)*B[j:,j+1]
-                V_t[j+1,:] = np.exp(1j*theta)*V_t[j+1,:]
+                if compute == 'UV' or compute == 'USV':
+                    V_t[j+1,:] = np.exp(1j*theta)*V_t[j+1,:]
 
     return abs(np.diag(B)), abs(np.diag(B,1))
 
