@@ -21,7 +21,13 @@ def householder_bidiag(A, U, V_t, mode='real'):
         U[:,j:] = U[:,j:] - \
             b*(U[:,j:]@v).reshape(m_U,1)@np.conjugate(v).reshape(1,m_B-j)
         
-        if j <= n_B-3 or n_B > m_B:
+        if mode == 'complex':
+            
+            theta = np.angle(B[j,j])
+            B[j,j:] = np.exp(-1j*theta)*B[j,j:]
+            U[:,j] = np.exp(1j*theta)*U[:,j]
+        
+        if j <= n_B-2 or n_B > m_B:
 
             v, b = determine_householder(np.conjugate(B[j, j+1:]),mode)
             B[j:,j+1:] = B[j:,j+1:] - \
@@ -29,12 +35,13 @@ def householder_bidiag(A, U, V_t, mode='real'):
             V_t[j+1:,:] = V_t[j+1:,:] - \
                 b*v.reshape(n_B-j-1,1)@(np.conjugate(v).T@V_t[j+1:,:]).reshape(1,n_V)
             
-    # print(abs(B))
+            if mode == 'complex':
+                
+                theta = np.angle(B[j,j+1])
+                B[j:,j+1] = np.exp(-1j*theta)*B[j:,j+1]
+                V_t[j+1,:] = np.exp(1j*theta)*V_t[j+1,:]
 
-    if mode == 'complex':
-        pass
-
-    return np.diag(B), np.diag(B,1)
+    return abs(np.diag(B)), abs(np.diag(B,1))
 
 def determine_householder(x, mode='real'):
     '''
@@ -76,7 +83,7 @@ def determine_householder(x, mode='real'):
         r, theta = abs(x[0]), np.angle(x[0])
 
         if sigma == 0:
-            return v, 1-np.exp(-1j*theta)
+            return v, 0
         else:
             mu = np.sqrt(r**2+sigma)
             a = -sigma/(r + mu)
