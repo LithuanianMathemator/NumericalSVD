@@ -5,12 +5,14 @@ def GolubKahan_SVD(alpha, beta, U, V_t, tol=1.0e-14, compute='USV'):
     algorithm for the computation of the SVD of a bidiagonal matrix using implicit QR
     input: alpha = diagonal, beta = superdiagonal of bidiagonal matrix, U and V_t 
     bidiagonalize initial matrix
-    output: array of descending singular values
+    output: array of descending singular values, U, V_t matrices of left and right
+    singular vectors, respectively
     '''
     alpha = np.copy(alpha)
     beta = np.copy(beta)
     n = np.size(alpha)
     q = 0
+    G = np.diag(alpha) + np.diag(beta,1)
 
     while q < n:
         
@@ -31,18 +33,20 @@ def GolubKahan_SVD(alpha, beta, U, V_t, tol=1.0e-14, compute='USV'):
             else:
                 SVD_step(alpha[p:n-q], beta[p:n-q-1], U[:,p:n-q], V_t[p:n-q,:], compute)
 
-    idx = np.flip(np.argsort(abs(alpha)))
-    if compute == 'US' or compute == 'USV':
-        U = (U.T[idx]).T
-    if compute == 'SV' or compute == 'USV':
-        V_t = V_t[idx]
     neg_sg = np.where(alpha < 0)
     for j in neg_sg:
         alpha[j] = abs(alpha[j])
         if compute == 'USV' or compute == 'US':
             U[:,j] = -1*U[:,j]
 
-    return alpha[idx]
+    idx = np.flip(np.argsort(abs(alpha)))
+    alpha = alpha[idx]
+    if compute == 'US' or compute == 'USV':
+        U = (U.T[idx]).T
+    if compute == 'SV' or compute == 'USV':
+        V_t = V_t[idx]
+
+    return U, alpha, V_t
 
 def SVD_step(alpha, beta, U, V_t, compute='USV'):
     '''
