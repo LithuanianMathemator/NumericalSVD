@@ -1,6 +1,6 @@
 import numpy as np
 
-def GolubKahan_SVD(alpha, beta, U, V_t, tol=1.0e-14):
+def GolubKahan_SVD(alpha, beta, U, V_t, tol=1.0e-14, compute='USV'):
     '''
     algorithm for the computation of the SVD of a bidiagonal matrix using implicit QR
     input: alpha = diagonal, beta = superdiagonal of bidiagonal matrix, U and V_t 
@@ -21,27 +21,30 @@ def GolubKahan_SVD(alpha, beta, U, V_t, tol=1.0e-14):
         p, q_d = count_blocks(alpha[:n-q], beta[:n-q-1])
         q += q_d
         if alpha[n-q-1] == 0:
-            zero_column(alpha[p:n-q], beta[p:n-q-1], V_t[p:n-q,:])
+            zero_column(alpha[p:n-q], beta[p:n-q-1], V_t[p:n-q,:], compute)
             q += 1
 
         if q < n and n-q-p > 1:
             if 0 in alpha[p:n-q]:
                 j = np.where(alpha[p:n-q] == 0)[0][-1]
-                zero_rotate(alpha[p+j:n-q], beta[p+j:n-q-1], U[:,p+j:n-q])
+                zero_rotate(alpha[p+j:n-q], beta[p+j:n-q-1], U[:,p+j:n-q], compute)
             else:
-                SVD_step(alpha[p:n-q], beta[p:n-q-1], U[:,p:n-q], V_t[p:n-q,:])
+                SVD_step(alpha[p:n-q], beta[p:n-q-1], U[:,p:n-q], V_t[p:n-q,:], compute)
 
     idx = np.flip(np.argsort(abs(alpha)))
-    U = (U.T[idx]).T
-    V_t = V_t[idx]
+    if compute == 'US' or compute == 'USV':
+        U = (U.T[idx]).T
+    if compute == 'SV' or compute == 'USV':
+        V_t = V_t[idx]
     neg_sg = np.where(alpha < 0)
     for j in neg_sg:
         alpha[j] = abs(alpha[j])
-        U[:,j] = -1*U[:,j]
+        if compute == 'USV' or compute == 'US':
+            U[:,j] = -1*U[:,j]
 
     return alpha[idx]
 
-def SVD_step(alpha, beta, U, V_t):
+def SVD_step(alpha, beta, U, V_t, compute='USV'):
     '''
     function to implicitly apply one step of the QR algorithm on B^TB for a bidiagonal
     matrix B
@@ -65,10 +68,11 @@ def SVD_step(alpha, beta, U, V_t):
         alpha[k+1] = a_l
         y = alpha[k]
 
-        temp_1 = np.copy(V_t[k,:])
-        temp_2 = np.copy(V_t[k+1,:])
-        V_t[k,:] = c*temp_1-s*temp_2
-        V_t[k+1,:] = s*temp_1+c*temp_2
+        if compute == 'SV' or compute == 'USV':
+            temp_1 = np.copy(V_t[k,:])
+            temp_2 = np.copy(V_t[k+1,:])
+            V_t[k,:] = c*temp_1-s*temp_2
+            V_t[k+1,:] = s*temp_1+c*temp_2
         
         c, s = determine_givens(y, z)
         a_k = c*alpha[k] - s*z
@@ -83,10 +87,11 @@ def SVD_step(alpha, beta, U, V_t):
         alpha[k+1] = a_l
         y = beta[k]
 
-        temp_1 = np.copy(U[:,k])
-        temp_2 = np.copy(U[:,k+1])
-        U[:,k] = c*temp_1-s*temp_2
-        U[:,k+1] = s*temp_1+c*temp_2
+        if compute == 'US' or compute == 'USV':
+            temp_1 = np.copy(U[:,k])
+            temp_2 = np.copy(U[:,k+1])
+            U[:,k] = c*temp_1-s*temp_2
+            U[:,k+1] = s*temp_1+c*temp_2
 
 def count_blocks(alpha, beta):
     '''
@@ -96,6 +101,8 @@ def count_blocks(alpha, beta):
     output: size p and q_0 such that q_0 is the size of the maximal diagonal block, p is
     the size of the block that is left
     '''
+    if np.size(beta) == 0:
+        return 0, 1
     n = np.size(alpha)
     q_0 = 0
     b = beta[n-2]
@@ -118,7 +125,7 @@ def count_blocks(alpha, beta):
 
     return p, q_0
 
-def zero_column(alpha, beta, V_t):
+def zero_column(alpha, beta, V_t, compute='USV'):
     '''
     function to zero the last element of beta if the last element of alpha is zero
     input: alpha = diagonal, beta = superdiagonal, V_t unitary matrix which bidiagonalizes
@@ -129,19 +136,20 @@ def zero_column(alpha, beta, V_t):
     for k in range(n-2, -1, -1):
         x = alpha[k]
         c, s = determine_givens(x, y)
-        a_k = c*alpha[k] - s*beta[k]
+        a_k = c*alpha[k] - s*y
         if k > 0:
             b_j = c*beta[k-1]
-            y = -s*beta[k-1]
+            y = s*beta[k-1]
             beta[k-1] = b_j
         alpha[k] = a_k
-        temp_1 = np.copy(V_t[k,:])
-        temp_2 = np.copy(V_t[n-1,:])
-        V_t[k,:] = c*temp_1-s*temp_2
-        V_t[n-1,:] = s*temp_1+c*temp_2
+        if compute == 'SV' or compute == 'USV':
+            temp_1 = np.copy(V_t[k,:])
+            temp_2 = np.copy(V_t[n-1,:])
+            V_t[k,:] = c*temp_1-s*temp_2
+            V_t[n-1,:] = s*temp_1+c*temp_2
     beta[n-2] = 0
 
-def zero_rotate(alpha, beta, U):
+def zero_rotate(alpha, beta, U, compute='USV'):
     '''
     function to zero a row of the bidiagonal matrix if the diagonal element in that row
     is zero
@@ -154,10 +162,11 @@ def zero_rotate(alpha, beta, U):
         c, s = determine_givens(alpha[k], -y)
         if alpha[k] == 0:
             alpha[k] = y
-            temp_1 = np.copy(U[:,0])
-            temp_2 = np.copy(U[:,k])
-            U[:,0] = -s*temp_2
-            U[:,k] = s*temp_1
+            if compute == 'US' or compute == 'USV':
+                temp_1 = np.copy(U[:,0])
+                temp_2 = np.copy(U[:,k])
+                U[:,0] = -s*temp_2
+                U[:,k] = s*temp_1
             beta[0] = 0
             return
         a_k = s*y + c*alpha[k]
@@ -166,10 +175,11 @@ def zero_rotate(alpha, beta, U):
             y = -s*beta[k]
             beta[k] = b_k
         alpha[k] = a_k
-        temp_1 = np.copy(U[:,0])
-        temp_2 = np.copy(U[:,k])
-        U[:,0] = c*temp_1-s*temp_2
-        U[:,k] = s*temp_1+c*temp_2
+        if compute == 'US' or compute == 'USV':
+            temp_1 = np.copy(U[:,0])
+            temp_2 = np.copy(U[:,k])
+            U[:,0] = c*temp_1-s*temp_2
+            U[:,k] = s*temp_1+c*temp_2
 
     beta[0] = 0 
 
