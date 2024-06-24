@@ -21,6 +21,7 @@ def JacobiSVD(A, tol=1.0e-16, compute='USV', mode='real'):
     x_norms = np.zeros(rank)
     for i in range(rank):
         x_norms[i] = np.linalg.norm(X[:,i])
+    X, x_norms = FirstSweep(X, x_norms)
     S, sg_values = JacobiSweep(X, x_norms)
     return 1,sg_values, 1
 
@@ -114,6 +115,9 @@ def JacobiSweep(X, x_norms, skips=True, eps=1.0e-16):
 
                         if abs(angle) > s:
                             s = abs(angle)
+
+        # print(s)
+        # time.sleep(2)
 
         if l == 3:
             skips = False
@@ -245,7 +249,7 @@ def determine_jacobi(norm_ap, norm_aq, angle):
 
 def stable_angle(norm_ap, norm_aq, ap, aq):
 
-      if norm_aq >= 1:
+    if norm_aq >= 1:
         too_small = False
         too_big = (norm_ap >= 1.0e+308/norm_aq)
         illcond = (1.0e-307*norm_ap > norm_aq)
