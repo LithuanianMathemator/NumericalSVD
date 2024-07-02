@@ -3,7 +3,7 @@ from scipy import linalg
 import math
 import time
 
-def JacobiSVD(A, tol=1.0e-16, compute='USV', mode='real'):
+def JacobiSVD(A, eps=1.0e-16, compute='USV', mode='real', tau_A=False, conditioning='QR'):
     '''
     function to compute the SVD of a matrix A using the Jacobi algorithm
     input: matrix A, tol tolerance for iteration
@@ -12,18 +12,125 @@ def JacobiSVD(A, tol=1.0e-16, compute='USV', mode='real'):
     '''
     m, n = np.shape(A)
     norm_A = np.linalg.norm(A)
-    Q, R, P = linalg.qr(A,pivoting=True)
-    rank = int(sum(abs(np.diag(R)) > tol*norm_A))
-    if rank == n:
-        pass
-    # R_1, P_1 = linalg.qr(R[:rank].T,mode='r',pivoting=True)
-    X = R[:rank].T
-    x_norms = np.zeros(rank)
-    for i in range(rank):
-        x_norms[i] = np.linalg.norm(X[:,i])
-    X, x_norms = FirstSweep(X, x_norms)
-    S, sg_values = JacobiSweep(X, x_norms)
-    return 1,sg_values, 1
+
+    if compute == 'S':
+        R, P = linalg.qr(A,pivoting=True,mode='r')
+        rank = int(sum(abs(np.diag(R)) > eps*n*norm_A))
+        x_norms = np.zeros(rank)
+        R_1, P_1 = linalg.qr(R[:rank].T,mode='r',pivoting=True)
+        X = R_1[:rank,:rank].T
+        for i in range(rank):
+            x_norms[i] = np.linalg.norm(X[:,i])
+        X, x_norms = FirstSweep(X, x_norms)
+        S, sg_values = JacobiSweep(X, x_norms)
+        if rank < n:
+            sg_values = np.concatenate((sg_values,np.zeros(n-rank)))
+        return sg_values
+    
+    if compute == 'SV':
+        R, P = linalg.qr(A,pivoting=True,mode='r')
+        rank = int(sum(abs(np.diag(R)) > eps*n))
+        X = R[:rank].T
+        x_norms = np.zeros(rank)
+        for i in range(rank):
+            x_norms[i] = np.linalg.norm(X[:,i])
+        X, x_norms = FirstSweep(X, x_norms)
+        S, sg_values = JacobiSweep(X, x_norms)
+        U_x = np.eye(n)
+        for i in range(rank):
+            U_x[:,i] = 1/sg_values[i]*S[:,i]
+        V_t = U_x[P,:].T
+        if rank < n:
+            sg_values = np.concatenate((sg_values,np.zeros(n-rank)))
+        return sg_values, V_t
+
+    if compute == 'US':
+        
+        if tau_A:
+            X = A
+            x_norms = np.zeros(n)
+            for i in range(n):
+                x_norms[i] = np.linalg.norm(X[:,i])
+            X, x_norms = FirstSweep(X, x_norms)
+            S, sg_values = JacobiSweep(X, x_norms)
+            U = np.zeros((n,n))
+            for i in range(n):
+                U[:,i] = 1/sg_values[i]*S[:,i]
+            if rank < n:
+                sg_values = np.concatenate((sg_values,np.zeros(n-rank)))
+            return U, sg_values
+
+        Q, R, P = linalg.qr(A,pivoting=True)
+        rank = int(sum(abs(np.diag(R)) > eps*n))
+        R_1, P_1 = linalg.qr(R[:rank].T,mode='r',pivoting=True)
+        X = R_1[:rank,:rank].T
+        x_norms = np.zeros(rank)
+        for i in range(rank):
+            x_norms[i] = np.linalg.norm(X[:,i])
+        X, x_norms = FirstSweep(X, x_norms)
+        S, sg_values = JacobiSweep(X, x_norms)
+        if rank < n:
+            sg_values = np.concatenate((sg_values,np.zeros(n-rank)))
+        U_x = np.zeros((rank,rank))
+        for i in range(rank):
+            U_x[:,i] = 1/sg_values[i]*S[:,i]
+        U = np.zeros(np.shape(Q))
+        U[:,:rank] = Q[:,:rank]@U_x[P_1,:]
+        U[:,rank:] = Q[:,rank:]
+        return U, sg_values
+
+    if compute == 'USV':
+        Q, R, P = linalg.qr(A,pivoting=True)
+        P_inv = np.zeros_like(P)
+        P_inv[P] = np.arange(len(P))
+        rank = int(sum(abs(np.diag(R)) > eps*n))
+        if conditioning=='QR':
+            Q_1, R_1 = linalg.qr(R[:rank].T)
+            X = np.copy(R_1[:rank].T)
+        if conditioning=='LQ':
+            Q_1, R_1, P_1 = linalg.qr(R[:rank].T,pivoting=True)
+            P_1_inv = np.zeros_like(P_1)
+            P_1_inv[P_1] = np.arange(len(P_1))
+            R_2 = linalg.qr(R_1[:rank].T,mode='r')[0]
+            X = np.copy(R_2.T)
+        x_norms = np.zeros(rank)
+        for i in range(rank):
+            x_norms[i] = np.linalg.norm(X[:,i])
+        X, x_norms = FirstSweep(X, x_norms)
+        S, sg_values = JacobiSweep(X, x_norms)
+        U_x = np.zeros((rank,rank))
+        for i in range(rank):
+            U_x[:,i] = 1/sg_values[i]*S[:,i]
+        if conditioning=='QR':
+            if rank == n:
+                W = np.zeros((n,n))
+                for i in range(n):
+                    W[:,i] = linalg.solve_triangular(R, S[:,i])
+                V = W
+            else:
+                V_x = np.zeros((rank,rank))
+                for i in range(n):
+                    V_x[:,i] = linalg.solve_triangular(R_1[:rank].T, S[:,i],lower=True)
+                V = np.zeros((n,n))
+                V[:,:rank] = Q_1[:,:rank]@V_x
+                V[:,rank:] = Q_1[:,rank:]
+            V_t = V.T[:,P_inv]
+            U = np.zeros((m,m))
+            U[:,:rank] = Q[:,:rank]@U_x
+            U[:,rank:] = Q[:,rank:]
+        if conditioning=='LQ':
+            W = np.zeros((rank,rank))
+            for i in range(rank):
+                W[:,i] = linalg.solve_triangular(R_1, S[:,i])
+            V = np.zeros((n,n))
+            V[:,:rank] = Q_1[:,:rank]@U_x
+            V[:,rank:] = Q_1[:,rank:]
+            V_t = V.T[:,P_inv]
+            U = np.zeros((m,m))
+            U[:,:rank] = Q[:,:rank]@W[P_1_inv,:]
+            U[:,rank:] = Q[:,rank:]
+        
+        return U, sg_values, V_t
 
 def JacobiSweep(X, x_norms, skips=True, eps=1.0e-16):
     
@@ -115,9 +222,6 @@ def JacobiSweep(X, x_norms, skips=True, eps=1.0e-16):
 
                         if abs(angle) > s:
                             s = abs(angle)
-
-        # print(s)
-        # time.sleep(2)
 
         if l == 3:
             skips = False
@@ -265,3 +369,4 @@ def stable_angle(norm_ap, norm_aq, ap, aq):
         norm_apq = (np.inner(ap,aq)/norm_aq)/norm_ap
 
     return norm_apq, illcond
+
