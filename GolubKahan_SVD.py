@@ -164,15 +164,6 @@ def zero_rotate(alpha, beta, U, compute='USV'):
     y = beta[0]
     for k in range (1, n):
         c, s = determine_givens(alpha[k], -y)
-        if alpha[k] == 0:
-            alpha[k] = y
-            if compute == 'US' or compute == 'USV':
-                temp_1 = np.copy(U[:,0])
-                temp_2 = np.copy(U[:,k])
-                U[:,0] = -s*temp_2
-                U[:,k] = s*temp_1
-            beta[0] = 0
-            return
         a_k = s*y + c*alpha[k]
         if k < n-1:
             b_k = c*beta[k]
