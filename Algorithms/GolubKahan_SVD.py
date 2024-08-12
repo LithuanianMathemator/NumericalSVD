@@ -253,30 +253,3 @@ def determine_givens(y,z):
             t = -z/y; c = 1/np.sqrt(1+t**2); s = c*t
 
     return c, s
-
-# for j in range(199,200):
-#     alpha = np.random.randint(0, high=100, size=10*j)
-#     beta = np.random.randint(0, high=100, size=10*j-1)
-#     alpha = np.double(alpha)
-#     beta = np.double(beta)
-#     U = np.eye(10*j, dtype=float)
-#     V_t = np.eye(10*j, dtype=float)
-#     G = np.diag(alpha) + np.diag(beta,1)
-#     U, sg_values, V_t = GolubKahan_SVD(alpha,beta,U,V_t)
-#     Q, numpy_sg, P_t = np.linalg.svd(np.diag(alpha) + np.diag(beta,1))
-#     print(np.linalg.norm(sg_values-numpy_sg)/np.linalg.norm(G))
-#     # print(U@np.diag(sg_values)@V_t)
-#     print(np.linalg.norm(U@np.diag(sg_values)@V_t-G)/np.linalg.norm(G))
-
-# alpha = np.array([3,2,1,0], dtype=float)
-# beta = np.array([1,2,3], dtype=float)
-# print(np.linalg.norm(np.diag(alpha) + np.diag(beta,1)))
-# zero_column(alpha, beta, np.eye(4))
-# print(np.linalg.norm(np.diag(alpha) + np.diag(beta,1)))
-# print (beta)
-# print(alpha)
-
-# alpha = np.array([1,0,0,4], dtype=float)
-# beta = np.array([6,7,8], dtype=float)
-# print(np.linalg.svd(np.diag(alpha)+np.diag(beta,1))[1])
-# print(GolubKahan_SVD(alpha, beta, np.eye(4), np.eye(4), compute='S')[1])
