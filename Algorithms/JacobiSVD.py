@@ -54,7 +54,6 @@ def JacobiSVD(A, eps=eps_sys, compute='USV', tau_A=False, conditioning='QR', sim
         x_norms = np.zeros(rank)
         R_1, P_1 = linalg.qr(R[:rank].T,mode='r',pivoting=True)
         X = R_1[:rank,:rank].T
-        # print(sl.svd(X, compute_uv=False, lapack_driver='gesvd'))
         
         for i in range(rank):
             x_norms[i] = np.linalg.norm(X[:,i])
@@ -238,8 +237,6 @@ def JacobiSweep(X, x_norms, eps=1.0e-16, acc=False, V=None):
 
         s = 0
         first = False
-
-        # print(x_norms)
 
         for i in range(n-1):
 
@@ -471,10 +468,6 @@ def determine_rank(R, eps):
     for k in range(n-1):
         if abs(R[k,k])*eps >= abs(R[k+1,k+1]):
             return k+1
-    # c_A = np.linalg.cond(R)
-    # for k in range(n):
-    #     if np.linalg.cond(R[k:]) <= eps*c_A:
-    #         return k
         
     return n
 
@@ -575,10 +568,6 @@ def JacobiRotation(X, x_norms, i, j, angle, illcond, acc=False, V=None):
         norm_q = x_norms[j]
         X[:,i] = (temp_xp-tan*temp_xq)*cos
         X[:,j] = (temp_xq+tan*temp_xp)*cos
-        # x_norms[i] = norm_p*np.sqrt(1-tan*angle*(norm_q/norm_p))
-        # x_norms[j] = norm_q*np.sqrt(max(0,1+tan*angle*norm_p/norm_q))
-        # if x_norms[j] == 0:
-        #     x_norms[j] = np.linalg.norm(X[:,j])
         x_norms[i] = np.linalg.norm(X[:,i])
         x_norms[j] = np.linalg.norm(X[:,j])
 
@@ -598,22 +587,3 @@ def JacobiRotation(X, x_norms, i, j, angle, illcond, acc=False, V=None):
             temp_vp = np.copy(V[:,i])
             temp_vq = np.copy(V[:,j])
             V[:,j] = temp_vq - angle*temp_vp
-
-# A = np.array([[3,2,1],
-#               [1,4,2],
-#               [3,2,2]])
-
-# Q, R, P = linalg.qr(A, pivoting=True)
-# sg_values= JacobiSVD(A, compute='S')
-# print(sg_values)
-# print(np.linalg.svd(A)[1])
-
-# for i in range(1,2):
-#     A = np.random.rand(i*10,i*10)*100
-#     m, n = np.shape(A)
-#     U, sg_values, V_t = JacobiSVD(A, compute='USV', conditioning='ACC')
-#     numpy_sg = np.linalg.svd(A)[1]
-#     print(np.linalg.norm(np.sort(sg_values)[::-1]-numpy_sg)/np.linalg.norm(A))
-#     print(np.linalg.norm(U@np.diag(sg_values)@V_t-A)/np.linalg.norm(A))
-#     print(np.linalg.norm(np.eye(m)-U.T@U))
-#     print(np.linalg.norm(np.eye(n)-V_t@V_t.T))
