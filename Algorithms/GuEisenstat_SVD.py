@@ -43,9 +43,6 @@ def GuEisenstat_SVD(alpha, beta, eps=1.0e-16, compute='USV', side=None):
 
         W_t[:n,:] = temp_W_t
 
-        # print(W_t)
-        # print(W_t[:,[0,n]])
-
         if compute == 'US' or compute == 'USV':
             return Q, sg_values, W_t
         else:
@@ -57,16 +54,12 @@ def GuEisenstat_SVD(alpha, beta, eps=1.0e-16, compute='USV', side=None):
     if compute == 'US' or compute == 'USV':
         Q1, sg_values_1, W1_t = GuEisenstat_SVD(alpha[:k-1],beta[:k-1], eps, compute)
         Q2, sg_values_2, W2_t = GuEisenstat_SVD(alpha[k:],beta[k:], eps, compute)
-        # print(W1_t[:,[0,k-1]])
-        # print(W2_t[:,[0,n-k]])
     elif compute == 'SV':
         sg_values_1, W1_t = GuEisenstat_SVD(alpha[:k-1],beta[:k-1], eps, compute)
         sg_values_2, W2_t = GuEisenstat_SVD(alpha[k:],beta[k:], eps, compute)
     else:
         sg_values_1, W1_t = GuEisenstat_SVD(alpha[:k-1],beta[:k-1], eps=eps, compute='S', side=1)
         sg_values_2, W2_t = GuEisenstat_SVD(alpha[k:],beta[k:], eps=eps, compute='S', side=2)
-        # print(W1_t)
-        # print(W2_t)
 
     if compute == 'S':
         c, s = gks.determine_givens(alpha_k*W1_t[k-1,1], beta_k*W2_t[n-k,0])
@@ -87,13 +80,10 @@ def GuEisenstat_SVD(alpha, beta, eps=1.0e-16, compute='USV', side=None):
         d[1:k] = sg_values_1
         d[k:] = sg_values_2
 
-    # print(z)
-
     if compute == 'US' or compute == 'USV':
         U_m, sg_values, V_m_t = M_SVD(np.copy(z), np.copy(d), eps, compute)
     else:
         sg_values, V_m_t = M_SVD(np.copy(z), np.copy(d), eps, compute)
-        # print(sg_values)
     
     if compute == 'US' or compute == 'USV':
         U = np.zeros((n,n))
@@ -107,8 +97,6 @@ def GuEisenstat_SVD(alpha, beta, eps=1.0e-16, compute='USV', side=None):
         V_t[n,0] = s*W1_t[k-1,0]
         V_t[:n,1] = -s*W2_t[n-k,1]*V_m_t[:,0] + V_m_t[:,k:]@W2_t[:n-k,1]
         V_t[n,1] = c*W2_t[n-k,1]
-        # print('----------')
-        # print(V_m_t[:,1:k])
     else:
         V_t = np.zeros((n+1,n+1))
         V_t[:n,:k] = V_m_t[:,0].reshape(n,1)@(c*W1_t[k-1,:].reshape(1,k))\
@@ -117,8 +105,6 @@ def GuEisenstat_SVD(alpha, beta, eps=1.0e-16, compute='USV', side=None):
             + V_m_t[:,k:]@W2_t[:n-k,:]
         V_t[n,:k] = s*W1_t[k-1,:]
         V_t[n,k:] = c*W2_t[n-k,:]
-        # print('----------')
-        # print(V_m_t[:,1:k])
 
     if compute == 'US' or compute == 'USV':
         return U, sg_values, V_t
@@ -143,15 +129,7 @@ def M_SVD(z, d, eps=1.0e-16, compute='USV'):
     else:
         V_t = np.eye(n, dtype=float)
         U = None
-    # print(z)
-    # print(d)
     z, d, U, V_t, a = deflate_M(z, d, U, V_t, eps, compute)
-    # print(V_t)
-    # print('Manamana, badibibi')
-    # print(z)
-    # print(d)
-    # print(n)
-    # print(a)
     sg_values_temp = np.zeros(n-a)
     diff = np.zeros((n-a,n-a))
     sums = np.zeros((n-a,n-a))
@@ -160,8 +138,6 @@ def M_SVD(z, d, eps=1.0e-16, compute='USV'):
         if info != 0:
             raise RuntimeError('The root finder did not converge.')
     U_temp, V_temp = compute_vec(d[:n-a], np.sign(z[:n-a]), diff, sums, compute)
-    # print(U_temp)
-    # print(V_temp)
     if compute == 'US' or compute == 'USV':
         U[:,:n-a] = U[:,:n-a]@U_temp
     V_t[:n-a,:] = V_temp@V_t[:n-a,:]
@@ -174,9 +150,6 @@ def M_SVD(z, d, eps=1.0e-16, compute='USV'):
         U = (U.T[idx]).T
     V_t = V_t[idx]
 
-    # print(sg_values)
-
-    # print(U@np.diag(sg_values)@V_t)
     if compute == 'US' or compute == 'USV':
         return U, sg_values, V_t
     else:
@@ -203,10 +176,8 @@ def deflate_M(z, d, U, V_t, eps=1.0e-16, compute='USV'):
     else:
         V_t[1:] = V_t[1:][idx]
 
-    # norm_M = np.sqrt(np.inner(d,d) + np.inner(z,z))
     norm_M = d[n-1] + np.linalg.norm(z)
     tM = 4*eps*norm_M
-    # print(tM)
 
     # deflate M if z has elements that are too small
     # if abs(z[0]) < tM:
@@ -347,82 +318,3 @@ def compute_vec(d, sign_z, diff, sums, compute):
                 U[0,0] = U[0,0]*(-1)
 
     return U, V_t
-
-# for j in range(3,5):
-#     alpha = np.random.rand(10*j)
-#     beta = np.random.rand(10*j)
-#     alpha = np.double(alpha)
-#     beta = np.double(beta)
-#     beta[-1] = 0
-#     alpha[5] = 0
-#     beta[5] = 0
-#     G = np.zeros((10*j, 10*j+1))
-#     G[:10*j,:10*j] = np.diag(alpha)
-#     G[:,1:] = G[:,1:] + np.diag(beta)
-#     U, sg_values, V_t = GuEisenstat_SVD(alpha,beta)
-#     Q, numpy_sg, P_t = np.linalg.svd(np.concatenate((np.diag(alpha),np.zeros((10*j,1))), axis=1) + np.diag(beta,1)[:10*j])
-#     print(np.linalg.norm(sg_values-numpy_sg))
-#     # print(U@np.diag(sg_values)@V_t)
-#     print(np.linalg.norm(U@np.diag(sg_values)@V_t[:10*j,:10*j]-G[:,:10*j]))
-#     print(V_t[:,10*j])
-#     print('-----------------')
-
-# for j in range(1,3):
-#     alpha = np.random.randint(0, high=100, size=10*j)
-#     beta = np.random.randint(0, high=100, size=10*j)
-#     alpha[0] = 0
-#     alpha[5] = 0
-#     alpha[6] = alpha[8]
-#     beta[-1] = 0
-#     # print(alpha)
-#     # print(beta)
-#     alpha = np.double(alpha)
-#     beta = np.double(beta)
-#     U = np.eye(10*j, dtype=float)
-#     V_t = np.eye(10*j, dtype=float)
-#     G = np.diag(alpha)
-#     G[0,:] = beta
-#     G = np.copy(G)
-#     Q, numpy_sg, P_t = np.linalg.svd(G)
-#     z, d, U, V_t, a = deflate_M(beta, alpha, U, V_t)
-#     B = np.diag(d)
-#     B[0,:] = z
-#     sg_values = np.linalg.svd(B)[1]
-#     print('--------------------')
-#     print(np.linalg.norm(sg_values-numpy_sg))
-#     print(np.linalg.norm(U@B@V_t-G))
-#     print('--------------------')
-#     print(d)
-#     print(z)
-#     print(a)
-#     print('--------------------')
-
-# for j in range(1,50):
-#     alpha = np.random.randint(0, high=100, size=10*j)
-#     beta = np.random.randint(0, high=100, size=10*j)
-#     beta = beta - np.random.randint(0, high=100, size=10*j)
-#     alpha[0] = 0
-#     alpha[5] = 0
-#     alpha[6] = alpha[8]
-#     # print(alpha)
-#     # print(beta)
-#     alpha = np.double(alpha)
-#     beta = np.double(beta)
-#     G = np.diag(alpha)
-#     G[0,:] = beta
-#     Q, numpy_sg, P_t = np.linalg.svd(G)
-#     U, sg_values, V_t = M_SVD(beta, alpha)
-#     # print(alpha)
-#     # print(beta)
-#     print(np.linalg.norm(sg_values-numpy_sg))
-#     print(np.linalg.norm(U@np.diag(sg_values)@V_t-G))
-
-# z = np.array([0.000001,0.00002,0.000003,0.00005,0.0006,0.0007, 0.0004], dtype=float)
-# d = np.array([0,400,500,600,700,800,900], dtype=float)
-# G = np.diag(d)
-# G[0,:] = z
-# numpy_sg = np.linalg.svd(G)[1]
-# print(numpy_sg)
-# U, sg_values, V_t = M_SVD(z, d)
-# print(sg_values)
-# print(np.linalg.norm(sg_values-numpy_sg))
