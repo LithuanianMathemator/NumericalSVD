@@ -25,7 +25,6 @@ def FullSVDTest(test='rel_max_error', ref='GEJSV'):
     sens_array = np.zeros(0)
     
     # matrix generation and testing 
-
     dims = [50]
     cond_s = [i for i in range(1,9)]
     cond_d = [i for i in range(1,9)]
@@ -228,8 +227,6 @@ def BendelMickey(k_S, k_D, mode_s, mode_d, m, n, test=None):
     
     eps_sys = np.finfo(float).eps
     tol = n*eps_sys
-
-    # print(s)
     
     W_1 = ortho_group.rvs(m)[:,:n]
     W_2 = ortho_group.rvs(n)
@@ -244,7 +241,6 @@ def BendelMickey(k_S, k_D, mode_s, mode_d, m, n, test=None):
     for i in range(n):
         x_norms[i] = np.linalg.norm(X[:,i])
     close = np.isclose(x_norms, comp_array, tol, tol)
-    # print(np.linalg.cond(X, 2))
     while False in close:
 
         if np.size(np.where(x_norms < 1-tol)[0]) == 0\
@@ -298,13 +294,4 @@ def BendelMickey(k_S, k_D, mode_s, mode_d, m, n, test=None):
 
     return A
 
-FullSVDTest(test='sensible')
-
-# k_S = 100
-# k_D = 1000
-# m = 100
-# n = 10
-# X = BendelMickey(k_S, k_D, 5, 3, m, n)
-# print('done')
-# for i in range(n):
-#     print(np.linalg.norm(X[:,i]))
+FullSVDTest()
