@@ -135,7 +135,7 @@ def JacobiSVD(A, eps=eps_sys, compute='USV', tau_A=False, conditioning='QR', sim
 
         Q, R, P = linalg.qr(A,pivoting=True)
         P_inv = np.zeros_like(P)
-        P_inv[P] = np.arange(len(P))
+        P_inv[P] = np.arange(P.size)
         rank = determine_rank(R, eps)
 
         if conditioning=='QR':
@@ -145,14 +145,14 @@ def JacobiSVD(A, eps=eps_sys, compute='USV', tau_A=False, conditioning='QR', sim
         if conditioning=='LQ':
             Q_1, R_1, P_1 = linalg.qr(R[:rank].T,pivoting=True)
             P_1_inv = np.zeros_like(P_1)
-            P_1_inv[P_1] = np.arange(len(P_1))
+            P_1_inv[P_1] = np.arange(P_1.size)
             R_2 = linalg.qr(R_1[:rank].T,mode='r')[0]
             X = np.copy(R_2.T)
 
         if conditioning=='ACC':
             Q_1, R_1, P_1 = linalg.qr(R[:rank].T,pivoting=True)
             P_1_inv = np.zeros_like(P_1)
-            P_1_inv[P_1] = np.arange(len(P_1))
+            P_1_inv[P_1] = np.arange(P_1.size)
             Q_2, R_2 = linalg.qr(R_1[:rank].T)
             X = np.copy(R_2.T)
         
