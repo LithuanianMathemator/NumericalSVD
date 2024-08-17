@@ -10,6 +10,8 @@ from JacobiSVD_simple import jacobisvd_simple
 from GuEisenstat_SVD import GuEisenstat_SVD
 from tqdm import tqdm
 from tqdm.contrib import itertools
+from timeit import Timer
+from time import time
 
 eps_sys = np.finfo(float).eps
 
@@ -69,6 +71,32 @@ def FullSVDTest(test='rel_max_error', ref='GEJSV'):
 
                 gesvd_values = sl.svd(A, compute_uv=False, lapack_driver='gesvd')
                 gejsv_values = sl.lapack.dgejsv(A, joba=0, jobu=3, jobv=3)[0]
+
+            elif test == 'time':
+                
+                qr_0 = time()
+                U_qr = np.eye(m)
+                V_qr = np.eye(n)
+                U_qr, alpha, beta, V_qr = householder_bidiag(A, U_qr, V_qr, compute='USV')
+                Q_dac, W_dac = np.copy(U_qr), np.copy(V_qr)
+                U_qr, qr, V_qr = GolubKahan_SVD(alpha, beta, U_qr, V_qr, eps=eps_sys, compute='USV')
+                qr_1 = time()
+                qr_time = qr_1 - qr_0
+
+                dac_0 = time()
+                beta_2 = np.zeros(n)
+                beta_2[:n-1] = beta
+                U_dac_temp, dac, V_dac_temp = GuEisenstat_SVD(alpha, beta, compute='USV')
+                U_dac = Q_dac
+                U_dac[:,:n] = Q_dac[:,:n]@U_dac_temp
+                V_dac = V_dac_temp[:n,:n]@W_dac
+                dac_1 = time()
+                dac_time = dac_1 - dac_0
+
+                jac_0 = time()
+                U_jac, jac, V_jac = JacobiSVD(A, compute='USV', conditioning='ACC', eps=eps_sys, simple=False)
+                jac_1 = time()
+                jac_time = jac_1 - jac_0
             
             else:
                 
@@ -150,6 +178,10 @@ def FullSVDTest(test='rel_max_error', ref='GEJSV'):
                 jac_error_array = np.append(jac_error_array, jac_error)
                 bound_array = np.append(bound_array, bound)
                 sens_array = np.append(sens_array, eig_error)
+            elif test == 'time':
+                qr_error_array = np.append(qr_error_array, qr_time)
+                dac_error_array = np.append(dac_error_array, dac_time)
+                jac_error_array = np.append(jac_error_array, jac_time)
 
     if test == 'rel_max_error':
         x = np.arange(np.size(qr_error_array))
@@ -201,6 +233,14 @@ def FullSVDTest(test='rel_max_error', ref='GEJSV'):
         plt.semilogy(x, bound_array, label='Bound (4.1)', linewidth=0.5)
         plt.semilogy(x, sens_array, label='Eigenvalue solver', linewidth=0.5)
         plt.title(f'Error f for each algorithm, reference {ref}')
+        plt.legend()
+        plt.show()
+    elif test == 'time':
+        x = np.arange(np.size(qr_error_array))
+        plt.plot(x, qr_error_array, label='Golub-Reinsch', linewidth=0.5)
+        plt.plot(x, dac_error_array, label='Divide-And-Conquer', linewidth=0.5)
+        plt.plot(x, jac_error_array, label='One-sided Jacobi', linewidth=0.5)
+        plt.title(f'Runtime for each algorithm in seconds')
         plt.legend()
         plt.show()
 
