@@ -21,6 +21,7 @@ All the tests are found in the file FullSVDTest.py. The two inputs for the funct
 - test = 'reference': test for the reference singular values
 - test = 'sensible': same as 'rel_max_error with added test of eigenvalue algorithm
 - test = 'time': runtime test
+- test = 'vec_norm': vector accuracy test, error v in thesis
 - reference = 'GESVD' for LAPACK driver DGESVD and 'GEJSV' for LAPACK driver DGEJSV
 
 The examples and functions used to compute them are in the folder 'Examples'.
