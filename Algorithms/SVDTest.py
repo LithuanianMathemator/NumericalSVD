@@ -27,11 +27,12 @@ def FullSVDTest(test='rel_max_error', ref='GEJSV'):
     sens_array = np.zeros(0)
     
     # matrix generation and testing 
+
     dims = [50]
     cond_s = [i for i in range(1,9)]
     cond_d = [i for i in range(1,9)]
-    s_modes = [1,2,5]
-    d_modes = [1,3,4]
+    s_modes = [1,2,3,4,5]
+    d_modes = [1,2,3,4,5]
 
     for n in dims:
         
@@ -44,6 +45,8 @@ def FullSVDTest(test='rel_max_error', ref='GEJSV'):
 
             if test == 'reference':
                 A, s = BendelMickey(k_S, k_D, mode_s, mode_d, m, n, test)
+            elif test == 'rel_max_error' or test == 'sensible':
+                A, s = BendelMickey(k_S, k_D, mode_s, mode_d, m, n, test)
             else:
                 A = BendelMickey(k_S, k_D, mode_s, mode_d, m, n, test)
 
@@ -51,18 +54,19 @@ def FullSVDTest(test='rel_max_error', ref='GEJSV'):
                 
                 if ref == 'GESVD':
                     sg_values = sl.svd(A, compute_uv=False, lapack_driver='gesvd')
-                    bound = k_S*eps_sys*1/10
+                    bound = k_S*min(eps_sys,s[n-1])
                 elif ref == 'GEJSV':
                     sg_values = sl.lapack.dgejsv(A, joba=0, jobu=3, jobv=3)[0]
-                    bound = k_S*eps_sys*n
+                    bound = k_S*min(eps_sys,s[n-1])
 
                 alpha, beta = householder_bidiag(A, U=None, V_t=None, compute='S')
 
                 qr = GolubKahan_SVD(alpha, beta, U=None, V_t=None, eps=eps_sys, compute='S')
 
                 dac = GuEisenstat_SVD(alpha, beta, compute='S')
+                # dac = np.linalg.svd(A)[1]
 
-                jac = JacobiSVD(A, compute='S', conditioning='LQ', eps=eps_sys, simple=False)
+                jac = JacobiSVD(A, compute='S', conditioning='ACC', eps=eps_sys, simple=True)
 
                 if test == 'sensible':
                     eig = np.sort(np.sqrt(sl.eig(A.T@A, right=False)))[::-1]
@@ -97,9 +101,23 @@ def FullSVDTest(test='rel_max_error', ref='GEJSV'):
                 U_jac, jac, V_jac = JacobiSVD(A, compute='USV', conditioning='ACC', eps=eps_sys, simple=False)
                 jac_1 = time()
                 jac_time = jac_1 - jac_0
-            
+
             else:
-                
+
+                if test == 'vec_norm':
+                    if ref == 'GESVD':
+                        U, sg_values, V = sl.svd(A, lapack_driver='gesvd')
+                    else:
+                        sg_values, U, V = sl.lapack.dgejsv(A, joba=0, jobu=0, jobv=0)[:3]
+                        V = V.T
+
+                    rel_gaps = np.zeros(n)
+                    for k in range(n):
+                        ignore_k = np.ones(sg_values.shape, dtype=bool)  
+                        ignore_k[k] = 0
+                        rel_gaps[k] = min(abs(sg_values[k] - sg_values[ignore_k])/\
+                                        (sg_values[k] + sg_values[ignore_k]))
+
                 U_qr = np.eye(m)
                 V_qr = np.eye(n)
                 U_qr, alpha, beta, V_qr = householder_bidiag(A, U_qr, V_qr, compute='USV')
@@ -114,7 +132,7 @@ def FullSVDTest(test='rel_max_error', ref='GEJSV'):
                 U_dac[:,:n] = Q_dac[:,:n]@U_dac_temp
                 V_dac = V_dac_temp[:n,:n]@W_dac
 
-                U_jac, jac, V_jac = JacobiSVD(A, compute='USV', conditioning='ACC', eps=eps_sys, simple=False)
+                U_jac, jac, V_jac = JacobiSVD(A, compute='USV', conditioning='QR', eps=eps_sys, simple=True)
 
             if test == 'rel_max_error':
                 qr_error = np.max(abs((qr - sg_values)/sg_values))
@@ -182,6 +200,46 @@ def FullSVDTest(test='rel_max_error', ref='GEJSV'):
                 qr_error_array = np.append(qr_error_array, qr_time)
                 dac_error_array = np.append(dac_error_array, dac_time)
                 jac_error_array = np.append(jac_error_array, jac_time)
+            elif test == 'vec_norm':
+                qr_error = 0
+                for l in range(n):
+                    w = np.where(U_qr[:,l]*U[:,l] != 0)[0][-1]
+                    x = np.where(V_qr[l,:]*V[l,:] != 0)[0][-1]
+                    if np.sign(U[w,l]) != np.sign(U_qr[w,l]):
+                        U_qr[:,l] = U_qr[:,l] * (-1)
+                    if np.sign(V.T[x,l]) != np.sign(V_qr.T[x,l]):
+                        V_qr[l,:] = V_qr[l,:] * (-1)
+                    temp = max(np.linalg.norm(U[:,l]-U_qr[:,l]), np.linalg.norm(V.T[:,l]-V_qr.T[:,l]))\
+                        /(k_S/rel_gaps[l] + 1)
+                    if temp > qr_error:
+                        qr_error = temp
+                dac_error = 0
+                for l in range(n):
+                    w = np.where(U_dac[:,l]*U[:,l] != 0)[0][-1]
+                    x = np.where(V_dac[l,:]*V[l,:] != 0)[0][-1]
+                    if np.sign(U[w,l]) != np.sign(U_dac[w,l]):
+                        U_dac[:,l] = U_dac[:,l] * (-1)
+                    if np.sign(V.T[x,l]) != np.sign(V_dac.T[x,l]):
+                        V_dac[l,:] = V_dac[l,:] * (-1)
+                    temp = max(np.linalg.norm(U[:,l]-U_dac[:,l]), np.linalg.norm(V.T[:,l]-V_dac.T[:,l]))\
+                        /(k_S/rel_gaps[l] + 1)
+                    if temp > dac_error:
+                        dac_error = temp
+                jac_error = 0
+                for l in range(n):
+                    w = np.where(U_jac[:,l]*U[:,l] != 0)[0][-1]
+                    x = np.where(V_jac[l,:]*V[l,:] != 0)[0][-1]
+                    if np.sign(U[w,l]) != np.sign(U_jac[w,l]):
+                        U_jac[:,l] = U_jac[:,l] * (-1)
+                    if np.sign(V.T[x,l]) != np.sign(V_jac.T[x,l]):
+                        V_jac[l,:] = V_jac[l,:] * (-1)
+                    temp = max(np.linalg.norm(U[:,l]-U_jac[:,l]), np.linalg.norm(V.T[:,l]-V_jac.T[:,l]))\
+                        /(k_S/rel_gaps[l] + 1)
+                    if temp > jac_error:
+                        jac_error = temp
+                qr_error_array = np.append(qr_error_array, qr_error)
+                dac_error_array = np.append(dac_error_array, dac_error)
+                jac_error_array = np.append(jac_error_array, jac_error)
 
     if test == 'rel_max_error':
         x = np.arange(np.size(qr_error_array))
@@ -197,8 +255,6 @@ def FullSVDTest(test='rel_max_error', ref='GEJSV'):
         plt.semilogy(x, gesvd_error_array, label='GESVD', linewidth=0.5)
         plt.semilogy(x, gejsv_error_array, label='GEJSV', linewidth=0.5)
         plt.title('Error n for each matrix')
-        plt.xlabel('Test matrices G')
-        plt.ylabel('Measured error for G')
         plt.legend()
         plt.show()
     elif test == 'full_svd':
@@ -243,6 +299,14 @@ def FullSVDTest(test='rel_max_error', ref='GEJSV'):
         plt.title(f'Runtime for each algorithm in seconds')
         plt.legend()
         plt.show()
+    elif test == 'vec_norm':
+        x = np.arange(np.size(qr_error_array))
+        plt.semilogy(x, qr_error_array, label='Golub-Reinsch', linewidth=0.5)
+        plt.semilogy(x, dac_error_array, label='Divide-And-Conquer', linewidth=0.5)
+        plt.semilogy(x, jac_error_array, label='One-sided Jacobi', linewidth=0.5)
+        plt.title(f'Verification of Theorem 4.4')
+        plt.legend()
+        plt.show()
 
 def BendelMickey(k_S, k_D, mode_s, mode_d, m, n, test=None):
     
@@ -272,7 +336,7 @@ def BendelMickey(k_S, k_D, mode_s, mode_d, m, n, test=None):
     W_2 = ortho_group.rvs(n)
 
     if test == 'reference':
-        return W_1@np.diag(s)@W_2, s
+        return W_1@np.diag(s)@W_2, np.sort(s)[::-1]
 
     a = np.sqrt(np.sum(s**2)/n)
     comp_array = np.ones(n)
@@ -332,6 +396,9 @@ def BendelMickey(k_S, k_D, mode_s, mode_d, m, n, test=None):
     
     A = equil_X@np.diag(d)
 
+    if test == 'rel_max_error' or test == 'sensible':
+        return A, 1/a*np.sort(s)[::-1]
+    
     return A
 
 FullSVDTest()
