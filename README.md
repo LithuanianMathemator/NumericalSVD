@@ -25,3 +25,5 @@ All the tests are found in the file FullSVDTest.py. The two inputs for the funct
 - reference = 'GESVD' for LAPACK driver DGESVD and 'GEJSV' for LAPACK driver DGEJSV
 
 The examples and functions used to compute them are in the folder 'Examples'.
+
+All the result graphs, even the ones that are not shown in the thesis, can be found in the folder ResultGraphs.
