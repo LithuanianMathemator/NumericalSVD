@@ -8,5 +8,14 @@ version: 1.0.0
 doi: 10.5281/zenodo.1234
 date-released: 2024-08-23
 url: "https://github.com/LithuanianMathemator/NumericalSVD"
-preferred-citation: misc
-note: https://github.com/LithuanianMathemator/NumericalSVD
+preferred-citation:
+  type: misc
+  authors:
+  - family-names: "Lorenz"
+    given-names: "Jonas"
+  title: "NumericalSVD"
+  version: 1.0.0
+  doi: 10.5281/zenodo.1234
+  date-released: 2024-08-23
+  url: "https://github.com/LithuanianMathemator/NumericalSVD"
+  note: https://github.com/LithuanianMathemator/NumericalSVD
