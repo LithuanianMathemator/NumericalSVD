@@ -1,6 +1,8 @@
 # NumericalSVD
 
-My bachelor's thesis is concerned with the numerical computation of the singular value decomposition. This repository has all the implementations that get discussed in the thesis, alongside the scripts used to generate the figures and examples in it.
+My bachelor's thesis is concerned with the numerical computation of the SVD. It goes over the theory of both the SVD and its numerical computation. Besides theoretical results, some applications also get shown. The most important part, however, are the algorithms and their testing.
+
+This repository has all the implementations of the numerical algorithms that get discussed in the thesis, alongside the scripts used to generate the figures and examples in it.
 
 The algorithms and tests can be found in the folder 'Algorithms'.
 
@@ -26,4 +28,4 @@ All the tests are found in the file FullSVDTest.py. The two inputs for the funct
 
 The examples and functions used to compute them are in the folder 'Examples'.
 
-All the result graphs, even the ones that are not shown in the thesis, can be found in the folder ResultGraphs.
+All the result graphs, even the ones that are not shown in the thesis, can be found in the folder 'ResultGraphs'.
