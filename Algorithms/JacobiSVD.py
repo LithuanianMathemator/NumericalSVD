@@ -9,8 +9,10 @@ eps_sys = np.finfo(float).eps
 def JacobiSVD(A, eps=eps_sys, compute='USV', tau_A=False, conditioning='QR', simple=False):
     '''
     function to compute the SVD of a matrix A using the Jacobi algorithm
-    input: matrix A, tol tolerance for iteration
-    output: sg_values array of singular values of A, U and V_t unitary such that
+    input: matrix A, eps usually unit roundoff, compute depending on outputs, tau_A is true if A is
+    a Cholesky factor, conditioning determines the preconditioning of A, simple is True if the
+    basic one-sided Jacobi algorithm is to be used
+    output: sg_values array of singular values of A, U and V_t orthogonal such that
     USV_t = A, where S = diag(sg_values)
     '''
     m, n = np.shape(A)
