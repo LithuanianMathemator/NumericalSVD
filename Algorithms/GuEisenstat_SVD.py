@@ -6,7 +6,8 @@ def GuEisenstat_SVD(alpha, beta, eps=1.0e-16, compute='USV', side=None):
     '''
     function to compute the SVD of a bidiagonal matrix using divide and conquer, the SVD
     gets computed by the Golub-Kahan algorithm once the matrix is small enough
-    input: alpha = diagonal, beta = superdiagonal of bidiagonal matrix
+    input: alpha = diagonal, beta = superdiagonal of bidiagonal matrix, eps usually unit roundoff,
+    compute depends on desired output, side is None only for first function call
     output: array of descending singular values, U, V_t matrices of left and right
     singular vectors, respectively
     '''
@@ -279,6 +280,12 @@ def deflate_M(z, d, U, V_t, eps=1.0e-16, compute='USV'):
     return z, d, U, V_t, a
 
 def compute_vec(d, sign_z, diff, sums, compute):
+    '''
+    compute singular vectors of M
+    input: d diagonal of matrix M, sign_z signs of z, diff and sums are matrices with entries
+    d_i-sigma_j and d_i + sigma_j
+    output: singular vectors U and V_t
+    '''
     
     n = np.size(d)
     z = np.ones(n)
