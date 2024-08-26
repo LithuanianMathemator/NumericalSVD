@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 from JacobiSVD import JacobiSVD
 from householder_bidiag import householder_bidiag
 from GolubKahan_SVD import GolubKahan_SVD
-from JacobiSVD_simple import jacobisvd_simple
 from GuEisenstat_SVD import GuEisenstat_SVD
 from tqdm import tqdm
 from tqdm.contrib import itertools
