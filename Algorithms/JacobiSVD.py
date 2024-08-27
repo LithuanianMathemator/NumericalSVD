@@ -1,8 +1,6 @@
 import numpy as np
 from scipy import linalg
 import math
-import time
-import scipy.linalg as sl
 
 eps_sys = np.finfo(float).eps
 
